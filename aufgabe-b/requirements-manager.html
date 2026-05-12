@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Requirement Modeler</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --danger: #dc2626;
+      --ok: #16a34a;
+      --warn: #d97706;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 24px clamp(16px, 4vw, 40px);
+      background: linear-gradient(135deg, #172554, #2563eb);
+      color: white;
+    }
+    header h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 38px); }
+    header p { margin: 0; opacity: .9; max-width: 800px; }
+    main { padding: 24px clamp(16px, 4vw, 40px); }
+    .toolbar, .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    button, .file-label {
+      border: 0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      font-weight: 650;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(37,99,235,.2);
+    }
+    button:hover, .file-label:hover { background: var(--primary-dark); }
+    button.secondary { background: #e5e7eb; color: var(--text); box-shadow: none; }
+    button.secondary:hover { background: #d1d5db; }
+    button.danger { background: var(--danger); }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+      background: white;
+      color: var(--text);
+    }
+    textarea { min-height: 84px; resize: vertical; }
+    .filters input, .filters select { max-width: 260px; }
+    .tabs { display: flex; gap: 8px; margin: 14px 0 18px; }
+    .tab { background: white; color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+    .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 1180px; }
+    th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+    th { background: #f9fafb; font-size: 12px; text-transform: uppercase; color: var(--muted); letter-spacing: .04em; }
+    td { font-size: 14px; }
+    .table-wrap { overflow-x: auto; }
+    .badge { display: inline-flex; padding: 4px 8px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: 700; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .actions button { padding: 7px 9px; font-size: 12px; }
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, .55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(980px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 25px 80px rgba(0,0,0,.25);
+    }
+    .modal header {
+      background: #111827;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal header h2 { margin: 0; font-size: 20px; }
+    .modal-body { padding: 20px 22px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field.full { grid-column: 1 / -1; }
+    label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 13px; color: #374151; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 22px 22px; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .kanban {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .column {
+      background: #eef2f7;
+      border-radius: var(--radius);
+      padding: 12px;
+      min-height: 220px;
+    }
+    .column h3 { margin: 0 0 12px; display: flex; justify-content: space-between; font-size: 15px; }
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 14px rgba(15,23,42,.06);
+    }
+    .card strong { display: block; margin-bottom: 5px; }
+    .card p { margin: 6px 0; color: var(--muted); font-size: 13px; }
+    .card .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .history-item { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+    .history-item summary { cursor: pointer; font-weight: 800; }
+    .empty { padding: 28px; text-align: center; color: var(--muted); }
+    .hidden { display: none !important; }
+    #csvInput { display: none; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Requirement Modeler</h1>
+    <p>Create, revise, import/export, and track software project requirements in a single-page app. Data is saved locally in this browser.</p>
+  </header>
+
+  <main>
+    <section class="toolbar">
+      <button id="newBtn">+ New requirement</button>
+      <button id="exportBtn" class="secondary">Export CSV</button>
+      <label class="file-label" for="csvInput">Import CSV</label>
+      <input id="csvInput" type="file" accept=".csv,text/csv" />
+      <button id="clearBtn" class="danger">Clear local data</button>
+    </section>
+
+    <section class="filters">
+      <input id="searchInput" placeholder="Search requirements..." />
+      <select id="statusFilter"><option value="">All statuses</option></select>
+      <select id="categoryFilter"><option value="">All categories</option></select>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab active" data-view="table">Table</button>
+      <button class="tab" data-view="kanban">Kanban</button>
+    </nav>
+
+    <section id="tableView" class="panel table-wrap"></section>
+    <section id="kanbanView" class="kanban hidden"></section>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop">
+    <form id="reqForm" class="modal">
+      <header>
+        <h2 id="modalTitle">New requirement</h2>
+        <button type="button" class="secondary" id="closeModalBtn">Close</button>
+      </header>
+      <div class="modal-body">
+        <input type="hidden" id="editingId" />
+        <div class="grid">
+          <div class="field">
+            <label for="category">Category *</label>
+            <input id="category" list="categoryList" required placeholder="e.g. AUTH, UI, API" />
+            <datalist id="categoryList"></datalist>
+            <div class="hint">ID is generated from category + incrementing number, e.g. AUTH-001.</div>
+          </div>
+          <div class="field">
+            <label for="idPreview">Requirement ID</label>
+            <input id="idPreview" readonly />
+          </div>
+          <div class="field"><label>Date</label><input id="date" type="date" required /></div>
+          <div class="field"><label>Author</label><input id="author" /></div>
+          <div class="field full"><label>Short description *</label><input id="shortDescription" required /></div>
+          <div class="field full"><label>Long description</label><textarea id="longDescription"></textarea></div>
+          <div class="field"><label>Status</label><select id="status"></select></div>
+          <div class="field"><label>Priority</label><select id="priority"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></div>
+          <div class="field"><label>Reference to the use case</label><input id="useCaseReference" /></div>
+          <div class="field"><label>Reference to other documents</label><input id="documentReference" /></div>
+          <div class="field"><label>Who approves the requirement?</label><input id="approver" /></div>
+          <div class="field"><label>User Scope</label><input id="userScope" placeholder="e.g. Admin, Guest, Mobile user" /></div>
+          <div class="field"><label>Due date</label><input id="dueDate" type="date" /></div>
+          <div class="field full"><label>Acceptance criterion</label><textarea id="acceptanceCriterion"></textarea></div>
+          <div class="field full"><label>Conflicts</label><textarea id="conflicts"></textarea></div>
+          <div class="field full"><label>Dependencies</label><textarea id="dependencies"></textarea></div>
+          <div class="field full"><label>Comments</label><textarea id="comments"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="secondary" id="cancelBtn">Cancel</button>
+        <button type="submit" id="saveBtn">Save requirement</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="historyBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <header>
+        <h2 id="historyTitle">Revision history</h2>
+        <button type="button" class="secondary" id="closeHistoryBtn">Close</button>
+      </header>
+      <div class="modal-body" id="historyBody"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'requirement-modeler-v1';
+  const statuses = ['Backlog', 'Draft', 'In Review', 'Approved', 'In Progress', 'Done', 'Rejected'];
+  const fields = ['id','date','author','shortDescription','longDescription','status','useCaseReference','documentReference','approver','acceptanceCriterion','priority','userScope','dueDate','conflicts','dependencies','comments','category','revision','createdAt','updatedAt'];
+  let requirements = load();
+  let activeView = 'table';
+
+  const $ = id => document.getElementById(id);
+  const formIds = ['category','date','author','shortDescription','longDescription','status','useCaseReference','documentReference','approver','acceptanceCriterion','priority','userScope','dueDate','conflicts','dependencies','comments'];
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(requirements)); }
+  function today() { return new Date().toISOString().slice(0,10); }
+  function esc(v='') { return String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+  function categoryCode(category) {
+    return String(category || 'REQ').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 16) || 'REQ';
+  }
+  function nextId(category, existingId) {
+    if (existingId) return existingId;
+    const code = categoryCode(category);
+    const nums = requirements
+      .filter(r => r.id && r.id.startsWith(code + '-'))
+      .map(r => Number((r.id.match(/-(\d+)$/) || [])[1] || 0));
+    const next = Math.max(0, ...nums) + 1;
+    return `${code}-${String(next).padStart(3, '0')}`;
+  }
+  function getCurrentFormData(existing) {
+    const data = {};
+    formIds.forEach(id => data[id] = $(id).value.trim());
+    data.id = existing?.id || nextId(data.category);
+    data.revision = existing ? (existing.revision || 1) + 1 : 1;
+    data.createdAt = existing?.createdAt || new Date().toISOString();
+    data.updatedAt = new Date().toISOString();
+    return data;
+  }
+  function seedSelects() {
+    $('status').innerHTML = statuses.map(s => `<option>${s}</option>`).join('');
+    $('statusFilter').innerHTML = '<option value="">All statuses</option>' + statuses.map(s => `<option>${s}</option>`).join('');
+  }
+  function updateCategories() {
+    const cats = [...new Set(requirements.map(r => r.category).filter(Boolean))].sort();
+    $('categoryList').innerHTML = cats.map(c => `<option value="${esc(c)}"></option>`).join('');
+    $('categoryFilter').innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
+  }
+  function filtered() {
+    const q = $('searchInput').value.toLowerCase();
+    const status = $('statusFilter').value;
+    const cat = $('categoryFilter').value;
+    return requirements.filter(r => {
+      const latest = latestRev(r);
+      const text = JSON.stringify(latest).toLowerCase();
+      return (!q || text.includes(q)) && (!status || latest.status === status) && (!cat || latest.category === cat);
+    });
+  }
+  function latestRev(r) { return r; }
+  function render() {
+    updateCategories();
+    renderTable();
+    renderKanban();
+  }
+  function renderTable() {
+    const rows = filtered();
+    if (!rows.length) { $('tableView').innerHTML = '<div class="empty">No requirements yet.</div>'; return; }
+    $('tableView').innerHTML = `<table><thead><tr>
+      <th>ID</th><th>Short description</th><th>Status</th><th>Category</th><th>Priority</th><th>Due date</th><th>Approver</th><th>Revision</th><th>Actions</th>
+      </tr></thead><tbody>${rows.map(r => `<tr>
+      <td><span class="badge">${esc(r.id)}</span></td>
+      <td><strong>${esc(r.shortDescription)}</strong><br><small>${esc((r.longDescription || '').slice(0, 130))}</small></td>
+      <td>${esc(r.status)}</td><td>${esc(r.category)}</td><td>${esc(r.priority)}</td><td>${esc(r.dueDate)}</td><td>${esc(r.approver)}</td><td>v${esc(r.revision || 1)}</td>
+      <td><div class="actions"><button onclick="app.edit('${esc(r.id)}')">New revision</button><button class="secondary" onclick="app.history('${esc(r.id)}')">History</button><button class="danger" onclick="app.remove('${esc(r.id)}')">Delete</button></div></td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+  function renderKanban() {
+    const rows = filtered();
+    $('kanbanView').innerHTML = statuses.map(st => {
+      const items = rows.filter(r => r.status === st);
+      return `<div class="column"><h3>${esc(st)} <span>${items.length}</span></h3>${items.map(r => `<div class="card">
+        <strong>${esc(r.id)} · ${esc(r.shortDescription)}</strong>
+        <p>${esc((r.longDescription || '').slice(0, 150))}</p>
+        <div class="meta"><span class="badge">${esc(r.priority)}</span><span class="badge">${esc(r.category)}</span>${r.dueDate ? `<span class="badge">Due ${esc(r.dueDate)}</span>` : ''}</div>
+        <div class="actions" style="margin-top:10px"><button onclick="app.edit('${esc(r.id)}')">Revise</button><button class="secondary" onclick="app.history('${esc(r.id)}')">History</button></div>
+      </div>`).join('') || '<p class="hint">No requirements</p>'}</div>`;
+    }).join('');
+  }
+  function openModal(existing) {
+    $('editingId').value = existing?.id || '';
+    $('modalTitle').textContent = existing ? `New revision for ${existing.id}` : 'New requirement';
+    formIds.forEach(id => $(id).value = existing?.[id] || '');
+    if (!existing) { $('date').value = today(); $('status').value = 'Draft'; $('priority').value = 'Medium'; }
+    $('idPreview').value = existing?.id || nextId($('category').value);
+    $('modalBackdrop').classList.add('open');
+    setTimeout(() => $('category').focus(), 0);
+  }
+  function closeModal() { $('modalBackdrop').classList.remove('open'); $('reqForm').reset(); $('editingId').value = ''; }
+  function saveRequirement(e) {
+    e.preventDefault();
+    const existing = requirements.find(r => r.id === $('editingId').value);
+    const data = getCurrentFormData(existing);
+    if (existing) {
+      const snapshot = {...existing};
+      delete snapshot.history;
+      data.history = [...(existing.history || []), snapshot];
+      requirements = requirements.map(r => r.id === existing.id ? data : r);
+    } else {
+      data.history = [];
+      requirements.push(data);
+    }
+    save(); closeModal(); render();
+  }
+  function showHistory(id) {
+    const r = requirements.find(x => x.id === id);
+    if (!r) return;
+    const entries = [...(r.history || []), {...r, current: true}];
+    $('historyTitle').textContent = `Revision history · ${id}`;
+    $('historyBody').innerHTML = entries.map(h => `<details class="history-item" ${h.current ? 'open' : ''}>
+      <summary>${h.current ? 'Current' : 'Revision'} v${esc(h.revision || 1)} · ${esc(h.updatedAt || h.createdAt || '')}</summary>
+      <p><strong>${esc(h.shortDescription)}</strong></p>
+      <p>${esc(h.longDescription || '')}</p>
+      <p><b>Status:</b> ${esc(h.status)} · <b>Priority:</b> ${esc(h.priority)} · <b>Category:</b> ${esc(h.category)}</p>
+      <p><b>Acceptance:</b> ${esc(h.acceptanceCriterion || '')}</p>
+      <p><b>Dependencies:</b> ${esc(h.dependencies || '')}</p>
+      <p><b>Conflicts:</b> ${esc(h.conflicts || '')}</p>
+      <p><b>Comments:</b> ${esc(h.comments || '')}</p>
+    </details>`).join('');
+    $('historyBackdrop').classList.add('open');
+  }
+  function csvEscape(value) {
+    const s = value == null ? '' : String(value);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function exportCsv() {
+    const rows = [fields.concat('historyJson')].concat(requirements.map(r => fields.map(f => r[f] || '').concat(JSON.stringify(r.history || []))));
+    const csv = rows.map(row => row.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'requirements.csv'; a.click(); URL.revokeObjectURL(a.href);
+  }
+  function parseCsv(text) {
+    const rows = []; let row = [], cur = '', quoted = false;
+    for (let i=0; i<text.length; i++) {
+      const ch = text[i], next = text[i+1];
+      if (quoted && ch === '"' && next === '"') { cur += '"'; i++; }
+      else if (ch === '"') quoted = !quoted;
+      else if (ch === ',' && !quoted) { row.push(cur); cur = ''; }
+      else if ((ch === '\n' || ch === '\r') && !quoted) { if (ch === '\r' && next === '\n') i++; row.push(cur); rows.push(row); row=[]; cur=''; }
+      else cur += ch;
+    }
+    if (cur || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  }
+  function importCsv(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCsv(reader.result).filter(r => r.length && r.some(Boolean));
+      const header = rows.shift();
+      const imported = rows.map(row => {
+        const obj = {};
+        header.forEach((h, i) => obj[h] = row[i] || '');
+        if (!obj.id) obj.id = nextId(obj.category);
+        obj.revision = Number(obj.revision || 1);
+        try { obj.history = JSON.parse(obj.historyJson || '[]'); } catch { obj.history = []; }
+        delete obj.historyJson;
+        return obj;
+      });
+      const byId = new Map(requirements.map(r => [r.id, r]));
+      imported.forEach(r => byId.set(r.id, r));
+      requirements = [...byId.values()]; save(); render(); $('csvInput').value = '';
+      alert(`Imported ${imported.length} requirement(s). Existing IDs were updated.`);
+    };
+    reader.readAsText(file);
+  }
+
+  window.app = {
+    edit: id => openModal(requirements.find(r => r.id === id)),
+    history: showHistory,
+    remove: id => { if (confirm(`Delete ${id}?`)) { requirements = requirements.filter(r => r.id !== id); save(); render(); } }
+  };
+
+  seedSelects(); render();
+  $('newBtn').onclick = () => openModal();
+  $('exportBtn').onclick = exportCsv;
+  $('csvInput').onchange = e => e.target.files[0] && importCsv(e.target.files[0]);
+  $('clearBtn').onclick = () => { if (confirm('Delete all local requirements?')) { requirements = []; save(); render(); } };
+  $('closeModalBtn').onclick = closeModal; $('cancelBtn').onclick = closeModal;
+  $('closeHistoryBtn').onclick = () => $('historyBackdrop').classList.remove('open');
+  $('reqForm').onsubmit = saveRequirement;
+  $('category').oninput = () => $('idPreview').value = nextId($('category').value, $('editingId').value);
+  ['searchInput','statusFilter','categoryFilter'].forEach(id => $(id).addEventListener('input', render));
+  document.querySelectorAll('.tab').forEach(btn => btn.onclick = () => {
+    activeView = btn.dataset.view;
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+    $('tableView').classList.toggle('hidden', activeView !== 'table');
+    $('kanbanView').classList.toggle('hidden', activeView !== 'kanban');
+  });
+  ['modalBackdrop','historyBackdrop'].forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) e.target.classList.remove('open'); }));
+})();
+</script>
+</body>
+</html>
